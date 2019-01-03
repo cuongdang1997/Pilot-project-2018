@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:ldap="http://www.springframework.org/schema/ldap" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:cache="http://www.springframework.org/schema/cache"
+	xmlns:websocket="http://www.springframework.org/schema/websocket"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+		  http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+		  http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd
+		  http://www.springframework.org/schema/context
+		  http://www.springframework.org/schema/context/spring-context-4.0.xsd
+		  http://www.springframework.org/schema/websocket http://www.springframework.org/schema/websocket/spring-websocket-4.0.xsd
+		  http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
+
+	<!-- Before we can use annotation-based autowiring, we’ll need to enable  it in our Spring configuration. 
+	The simplest way to do that is with the <context:annotation-config> element -->
+	<context:annotation-config />
+	<context:property-placeholder location="classpath:prop/application.properties" order="1" ignore-unresolvable="true" ignore-resource-not-found="true" />
+	<context:property-placeholder location="classpath:prop/sql.properties" order="2" ignore-unresolvable="true" ignore-resource-not-found="true" />
+
+	<context:component-scan	base-package="com.magrabbit.pilot.controller" />
+	<context:component-scan base-package="com.magrabbit.pilot.service" />
+	<context:component-scan base-package="com.magrabbit.pilot.dao" />	
+	<!-- <context:component-scan base-package="security" /> -->
+
+	<!-- 	Hibernate Session Factory -->
+	<bean id="sessionFactory"
+		class="org.springframework.orm.hibernate4.LocalSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.dialect">${hibernate.dialect}</prop>
+				<!-- <prop key="hibernate.hbm2ddl.auto">create</prop> -->   
+			</props>
+		</property>
+		<property name="packagesToScan">
+			<list>
+				<value>com.magrabbit.pilot.bean</value>
+			</list>
+		</property>
+		
+	</bean>
+	
+	<!-- 	Database Configuration -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="${hibernate.driverClassName}" />
+		<property name="url" value="${hibernate.databaseurl}" />
+		<property name="username" value="${hibernate.username}" />
+		<property name="password" value="${hibernate.password}" />
+		<property name="initialSize" value="20"/>
+		<property name="maxActive" value="30"/>
+		<property name="maxWait" value="30000"/>
+	</bean>
+
+	<!-- 	Transaction Management -->
+	<tx:annotation-driven proxy-target-class="true" transaction-manager="transactionManager"/>
+	<bean id="transactionManager"
+		class="org.springframework.orm.hibernate4.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory" />
+	</bean>
+
+	<websocket:message-broker application-destination-prefix="/app">
+		<websocket:stomp-endpoint path="/ws">
+			<websocket:sockjs/>
+		</websocket:stomp-endpoint>
+		<websocket:simple-broker prefix="/topic"/>
+	</websocket:message-broker>
+</beans>
